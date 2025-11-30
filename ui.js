@@ -4,12 +4,32 @@ const UI = {
   cursor: 0,
   stateStore: new Map(),
 
+  theme: {
+    button: {
+      background: "#333",
+      color: "white",
+      padding: "10px 16px",
+      border: "1px solid #555",
+      borderRadius: "6px",
+      margin: "4px",
+      cursor: "pointer",
+      transition: "0.1s",
+    },
+    buttonHover: {
+      background: "#444"
+    },
+    row: {
+      display: "flex",
+      gap: "8px",
+      marginBottom: "12px"
+    }
+  },
+
   begin() {
     this.frame = [];
     this.cursor = 0;
   },
 
-  // ─────────────── STATE HANDLING ───────────────
   state(key, initial) {
     if (!this.stateStore.has(key)) {
       this.stateStore.set(key, initial);
@@ -20,60 +40,67 @@ const UI = {
     ];
   },
 
-  // ─────────────── BUTTON WIDGET ───────────────
-  button(label, onclick) {
+  button(label, onclick, style = {}) {
     const id = this.cursor++;
 
     this.frame.push({
       type: "button",
       label,
       id,
-      onclick
+      onclick,
+      style
     });
-
-    return id;
   },
 
-  // ─────────────── LAYOUT (ROW) ───────────────
-  row(childrenFn) {
-    const start = this.frame.length;
+  row(childrenFn, style = {}) {
+    const childrenStart = this.frame.length;
     childrenFn();
-    const end = this.frame.length;
+    const children = this.frame.splice(childrenStart);
 
-    this.frame.splice(start, 0, {
+    this.frame.push({
       type: "row",
-      children: this.frame.slice(start + 1, end + 1)
+      children,
+      style
     });
   },
 
-  // ─────────────── RENDER TO DOM ───────────────
   render(root) {
     root.innerHTML = "";
 
-    const build = (el) => {
-      if (el.type === "button") {
-        const b = document.createElement("button");
-        b.textContent = el.label;
-        b.className = "ui-btn";
+    const applyStyle = (el, styleObj) => {
+      for (let key in styleObj) {
+        el.style[key] = styleObj[key];
+      }
+    };
 
-        if (el.onclick) b.onclick = el.onclick;
+    const build = (node) => {
+      if (node.type === "button") {
+        const b = document.createElement("button");
+        b.textContent = node.label;
+
+        // merge style: theme + per-widget
+        applyStyle(b, this.theme.button);
+        applyStyle(b, node.style);
+
+        b.onmouseenter = () => applyStyle(b, this.theme.buttonHover);
+        b.onmouseleave = () => applyStyle(b, this.theme.button);
+
+        if (node.onclick) b.onclick = node.onclick;
         return b;
       }
 
-      if (el.type === "row") {
+      if (node.type === "row") {
         const div = document.createElement("div");
-        div.className = "ui-row";
 
-        for (const child of el.children) {
-          div.appendChild(build(child));
-        }
+        applyStyle(div, this.theme.row);
+        applyStyle(div, node.style);
+
+        node.children.forEach(child => div.appendChild(build(child)));
         return div;
       }
     };
 
-    for (const el of this.frame) {
-      if (el.type !== "row") root.appendChild(build(el));
-    }
+    this.frame.forEach(node => root.appendChild(build(node)));
   },
 
   end(root) {
