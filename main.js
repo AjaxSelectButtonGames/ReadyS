@@ -13,8 +13,7 @@ function render() {
   UI.button("Show Count", () => alert("Count: " + count));
 
   UI.end(document.getElementById("app"));
-
-  requestAnimationFrame(render);
 }
 
-render();
+UI.setRenderFunction(render);
+render(); // initial paint
