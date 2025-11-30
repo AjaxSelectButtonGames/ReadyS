@@ -1,4 +1,3 @@
-// main.js
 import UI from "./ui.js";
 
 function render() {
