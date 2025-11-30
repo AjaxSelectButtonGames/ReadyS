@@ -1,28 +1,15 @@
-// ui.js
 const UI = {
   frame: [],
   cursor: 0,
   stateStore: new Map(),
+  _renderFn: null,
 
-  theme: {
-    button: {
-      background: "#333",
-      color: "white",
-      padding: "10px 16px",
-      border: "1px solid #555",
-      borderRadius: "6px",
-      margin: "4px",
-      cursor: "pointer",
-      transition: "0.1s",
-    },
-    buttonHover: {
-      background: "#444"
-    },
-    row: {
-      display: "flex",
-      gap: "8px",
-      marginBottom: "12px"
-    }
+  setRenderFunction(fn) {
+    this._renderFn = fn;
+  },
+
+  requestRender() {
+    if (this._renderFn) this._renderFn();
   },
 
   begin() {
@@ -34,6 +21,7 @@ const UI = {
     if (!this.stateStore.has(key)) {
       this.stateStore.set(key, initial);
     }
+
     return [
       this.stateStore.get(key),
       (v) => this.stateStore.set(key, v)
@@ -47,30 +35,25 @@ const UI = {
       type: "button",
       label,
       id,
-      onclick,
-      style
+      style,
+      onclick
     });
+
+    return id;
   },
 
   row(childrenFn, style = {}) {
-    const childrenStart = this.frame.length;
+    const start = this.frame.length;
     childrenFn();
-    const children = this.frame.splice(childrenStart);
-
-    this.frame.push({
-      type: "row",
-      children,
-      style
-    });
+    const children = this.frame.splice(start);
+    this.frame.push({ type: "row", children, style });
   },
 
-  render(root) {
+  renderDOM(root) {
     root.innerHTML = "";
 
-    const applyStyle = (el, styleObj) => {
-      for (let key in styleObj) {
-        el.style[key] = styleObj[key];
-      }
+    const applyStyle = (elem, style) => {
+      for (const key in style) elem.style[key] = style[key];
     };
 
     const build = (node) => {
@@ -78,33 +61,45 @@ const UI = {
         const b = document.createElement("button");
         b.textContent = node.label;
 
-        // merge style: theme + per-widget
-        applyStyle(b, this.theme.button);
-        applyStyle(b, node.style);
+        applyStyle(b, {
+          background: "#333",
+          color: "white",
+          padding: "10px 16px",
+          border: "1px solid #555",
+          borderRadius: "6px",
+          margin: "4px",
+          cursor: "pointer"
+        });
 
-        b.onmouseenter = () => applyStyle(b, this.theme.buttonHover);
-        b.onmouseleave = () => applyStyle(b, this.theme.button);
+        if (node.onclick) {
+          b.onclick = () => {
+            node.onclick();
+            this.requestRender();
+          };
+        }
 
-        if (node.onclick) b.onclick = node.onclick;
         return b;
       }
 
       if (node.type === "row") {
-        const div = document.createElement("div");
+        const r = document.createElement("div");
 
-        applyStyle(div, this.theme.row);
-        applyStyle(div, node.style);
+        applyStyle(r, {
+          display: "flex",
+          gap: "8px",
+          marginBottom: "12px"
+        });
 
-        node.children.forEach(child => div.appendChild(build(child)));
-        return div;
+        node.children.forEach(c => r.appendChild(build(c)));
+        return r;
       }
     };
 
-    this.frame.forEach(node => root.appendChild(build(node)));
+    this.frame.forEach(n => root.appendChild(build(n)));
   },
 
   end(root) {
-    this.render(root);
+    this.renderDOM(root);
   }
 };
 
