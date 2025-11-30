@@ -5,10 +5,10 @@ function render() {
 
 const [count, setCopunt] = UI.state("counter",0);
 
-UI.row(() => {
-  UI.button("+ Add", () => setCount(count + 1));
-  UI.button("- Subtract", => setCount(count - 1));
-});
+  UI.row(() => {
+    UI.button("➕ Increment", () => setCount(count + 1));
+    UI.button("➖ Decrement", () => setCount(count - 1));
+  });
 
 UI.button("Show Count", () => alert("Count: " + count));
 
